@@ -40,10 +40,12 @@ private:
         void adjustData(string data);
         void adjustLeft(Symbol* symbol);
         void adjustRight(Symbol* symbol);
+        void adjustParent(Symbol* symbol);
 
         string getName();
         string getDatatype();
         string getData();
+        Symbol* getParent();
         Symbol* getLeft();
         Symbol* getRight();
     };
@@ -56,7 +58,7 @@ public:
     bool keyCompare(Symbol* S1, Symbol* S2); //0: S1 < S2; 1: S1 > S2
     void rightRotate(Symbol* target); 
     void leftRotate(Symbol* target);
-    void splay(Symbol* target);
+    void splay(Symbol* root, Symbol* target);
     void insertSymbol(Symbol* root, string name, string datatype, bool staticFlag, int level);
     void deleteSymbol(int level);
     Symbol* search(string name, int level);
@@ -77,10 +79,13 @@ public:
     bool isNum(string str);
     bool isStr(string value);
     bool isIden(string value);
+    bool isFunc(string str);
+    Symbol* isMax(Symbol* root)
 };
 
-//splay check
-//do search function without splaying the tree. only lookup do
+//search function do not splay the tree. when use lookup then splay
 //https://www.codesdope.com/course/data-structures-splay-trees/
+//NUM_COMP and NUM_SPLAY
+//Begin End 
 
 #endif

@@ -45,17 +45,13 @@ void SymbolTable::run(string filename)
         {
             cout << PRINT() << endl;
         }
-        else if (ins == "RPRINT")
-        {
-            cout << RPRINT() << endl;
-        }
         else
         {
             // n ve 
             size_t pos = ins.find_first_of(' ', 0);
             temp = ins.substr(0, pos);
 
-            if (temp == "INSERT")
+            if (temp == "INSERT") // name, type, static
             {
                 //cutting
                 temp = ins.substr(pos + 1, ins.find_first_of(' ', pos + 1) - (pos + 1));
@@ -82,15 +78,44 @@ void SymbolTable::run(string filename)
                 */
 
                 //cutting
-                string data = ins.substr(pos + 1, ins.find_first_of('\n', pos + 1) - (pos + 1));
-                pos = ins.find_first_of('\n', pos + 1);
+                string data = ins.substr(pos + 1, ins.find_first_of(' ', pos + 1) - (pos + 1));
+                pos = ins.find_first_of(' ', pos + 1);
 
                 //valid datatype
-                if (data == "number" || data == "string");
+                if (data == "number" || data == "string" || isFunc(data)); 
+                {
+
+                }
                 else
                     throw InvalidInstruction(ins);
 
-                if (INSERT(temp, data))
+                //cutting
+                int level = 0;
+                string flag = ins.substr(pos + 1, ins.find_first_of('\n', pos + 1) - (pos + 1));
+                pos = ins.find_first_of('\n', pos + 1);
+                
+                //valid static
+                int level;
+
+                if(flag == "true")
+                {   
+                    level = 0;
+                }
+                else if(flag == "false")
+                {
+                    level = levelCurrent;
+                    if(isFunc())
+                    {
+                        throw InvalidDeclaration(ins);
+                    }
+                }
+                else
+                {
+                    throw InvalidInstruction(ins);
+                }
+
+
+                if (INSERT(temp, data, level, flag))
                     cout << "success\n";
                 else
                     throw Redeclared(ins);
@@ -168,7 +193,16 @@ void SymbolTable::run(string filename)
         throw UnclosedBlock(levelIndex);
 }
 
-bool SymbolTable::INSERT(string name, string datatype, bool staticFlag) {
+bool SymbolTable::INSERT(string name, string datatype, int level, bool staticFlag) 
+{
+    Symbol* target = new Symbol(name, datatype, level, staticFlag);
+    Symbol* temp = new search(target);
+
+    if(temp->name == name || temp->level == level)
+        return false;
+    
+    insertSymbol(target);
+    return true;
 }
 
 int SymbolTable::ASSIGN(string name, string value) {
@@ -466,20 +500,15 @@ string SymbolTable::RPRINT() {
 }
 
 void SymbolTable::BEGIN() {
-    addScope();
+    levelCurrent++;
 }
 
 bool SymbolTable::END() {
-    if (scopeCurrent != scopeHead)
+    if (levelCurrent != 0)
     {
-        Scope* temp = scopeCurrent;
-
-        scopeCurrent = scopeCurrent->getPrev();
-        scopeCurrent->adjustNext(NULL);
-
-        levelIndex--;
-        delete temp;
-
+        //delete every Symbol in levelCurrent
+        levelCurrent--;
+        
         return true;
     }
     else
@@ -531,14 +560,88 @@ bool SymbolTable::isIden(string value) {
         return false;
 }
 
-void SymbolTable::addScope() {
-    Scope* newScope = new Scope();
+bool SymbolTable::isFunc(string data)
+{
+    string ins = data;
+    string temp = "";
+    string list = "";
+    size_t pos = 0;
+    size_t lastComma = 0;
+    
+    if(ins[0] == '(')
+    {
+        list = ins.substr(pos + 1, ins.find_first_of(')', pos + 1) - (pos + 1));
+        pos = ins.find_first_of(')', pos + 1);
+        lastComma = ins.rfind(',');
+        
+        //cout << list << " " << pos << " " << lastComma << endl;
+        
+        bool flag = true;
+        pos = 0;
+        
+        while(flag)
+        {
+            temp = ins.substr(pos + 1, ins.find_first_of(',', pos + 1) - (pos + 1));
+            pos = ins.find_first_of(',', pos + 1);
+                        
+            if(!(temp == "string" || temp == "number" || temp == ""))
+            {
+                //cout << "false" << endl;
+                return false;
+            }
+            
+            //cout << "arguments: " << temp << " " << pos << endl; 
+            
+            if(pos == lastComma)
+            {
+                temp = ins.substr(pos + 1, ins.find_first_of(')', pos + 1) - (pos + 1));
+                pos = ins.find_first_of(')', pos + 1);
+                
+                cout << "arguments: " << temp << " " << pos << endl; 
+                if(!(temp == "string" || temp == "number" || temp == ""))
+                {
+                    //cout << "false" << endl;
+                    return false;
+                }
+                
+                flag = false;
+            }
+            
+        }
+        
+        if(ins.substr(pos + 1, 2) == "->")
+        {
+            pos += 2;
+            temp = ins.substr(pos + 1, ins.find_first_of('\n', pos + 1) - (pos + 1));
+            pos = ins.find_first_of('\n', pos);
+            
+            if(!(temp == "string" || temp == "number"))
+            {
+                //cout << "false" << endl;
+                return false;
+            }
+            else
+            {
+                //cout << "output: " << temp << " " << pos << endl;
+            }
+        }
+    }
+    else
+    {
+        //cout << false;
+        return false;
+    }
 
-    scopeCurrent->adjustNext(newScope);
-    newScope->adjustPrev(scopeCurrent);
+    return true;
+}
 
-    scopeCurrent = newScope;
-    ++levelIndex;
+SymbolTable::Symbol* SymbolTable::isMax(Symbol* root)
+{
+    while(root->right != NULL)
+    {
+        root = root->right;
+    }
+    return root;
 }
 
 SymbolTable::Symbol* SymbolTable::findIden(string name) {
@@ -559,7 +662,6 @@ SymbolTable::Symbol* SymbolTable::findIden(string name) {
     return iden;
 }
 
-
 SymbolTable::Symbol::Symbol(string name, string datatype, bool staticFlag, int level) {
     this->name = name;
     this->datatype = datatype;
@@ -567,6 +669,7 @@ SymbolTable::Symbol::Symbol(string name, string datatype, bool staticFlag, int l
     this->level = level;
     left = NULL;
     right = NULL;
+    parent = NULL;
     data = "";
 }
 
@@ -580,6 +683,10 @@ void SymbolTable::Symbol::adjustDatatype(string datatype) {
 
 void SymbolTable::Symbol::adjustData(string data) {
     this->data = data;
+}
+
+void SymbolTable::Symbol::adjustParent(Symbol* symbol){
+    parent = symbol;
 }
 
 void SymbolTable::Symbol::adjustRight(Symbol* symbol) {
@@ -604,6 +711,11 @@ string SymbolTable::Symbol::getDatatype()
 string SymbolTable::Symbol::getData()
 {
     return this->data;
+}
+
+SymbolTable::Symbol* SymbolTable::Symbol::getParent()
+{
+    return parent;
 }
 
 SymbolTable::Symbol* SymbolTable::Symbol::getLeft()
@@ -679,11 +791,11 @@ bool SymbolTable::keyCompare(Symbol* root, string name, int level) //0: root < t
     //string compare
 }
 
-void SymbolTable::splay(Symbol* target)
+void SymbolTable::splay(Symbol* root, Symbol* target)
 {
     while(target->parent != NULL) //target is not root
     {
-        if(target->parent == head) //target is child of root, one rotation
+        if(target->parent == root) //target is child of root, one rotation
         {
             if(target == target->parent->left)
             {
@@ -757,10 +869,57 @@ void SymbolTable::insertSymbol(Symbol* target)
         y->right = target;
     }
 
-    splay(target);
+    splay(head, target);
 }
 
 void SymbolTable::deleteSymbol(Symbol *target)
 {
+    splay(head, target);
 
+    Symbol* leftSubtree = head->left;
+    Symbol* rightSubtree = head->right;
+
+    if(leftSubtree == NULL)
+    {
+        leftSubtree->parent = NULL;
+    }
+
+    if(rightSubtree == NULL)
+    {
+        rightSubtree->parent = NULL;
+    }
+
+    free(target);
+
+    if(leftSubtree != NULL)
+    {
+        Symbol* max = isMax(leftSubtree);
+        splay(leftSubtree, max);
+        leftSubtree->right = rightSubtree;
+        head = leftSubtree;
+    }    
+    else
+    {
+        head = rightSubtree;
+    }
+}
+
+SymbolTable::Symbol* SymbolTable::search(Symbol* temp, Symbol* target)
+{
+    if(temp->name == target->name)
+    {
+        return temp;
+    }
+    else if(keyCompare(target, temp))
+    {
+        return serach(temp->left, target);
+    }
+    else if(!(keyCompare(target,temp)))
+    {
+        return search(temp->right, target);
+    }
+    else 
+    {
+        return NULL;
+    }
 }
