@@ -28,6 +28,7 @@ private:
         string name;
         string datatype;
         string data;
+        bool staticFlag;
         int level;
         Symbol* parent;
         Symbol* left;
@@ -45,6 +46,8 @@ private:
         string getName();
         string getDatatype();
         string getData();
+        int getLevel();
+        bool getStaticFlah();
         Symbol* getParent();
         Symbol* getLeft();
         Symbol* getRight();
@@ -59,9 +62,9 @@ public:
     void rightRotate(Symbol* target); 
     void leftRotate(Symbol* target);
     void splay(Symbol* root, Symbol* target);
-    void insertSymbol(Symbol* root, string name, string datatype, bool staticFlag, int level);
-    void deleteSymbol(int level);
-    Symbol* search(string name, int level);
+    void insertSymbol(Symbol* target);
+    void deleteSymbol(Symbol* target);
+    Symbol* search(Symbol* temp, Symbol* target);
 
     void run(string filename);
 
@@ -80,12 +83,15 @@ public:
     bool isStr(string value);
     bool isIden(string value);
     bool isFunc(string str);
-    Symbol* isMax(Symbol* root)
+    bool isFuncCall(string str);
+    Symbol* isMax(Symbol* root);
 };
 
 //search function do not splay the tree. when use lookup then splay
 //https://www.codesdope.com/course/data-structures-splay-trees/
 //NUM_COMP and NUM_SPLAY
 //Begin End 
+//IsFuncCall 
+//
 
 #endif
